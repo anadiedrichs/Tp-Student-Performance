@@ -1,0 +1,158 @@
+---
+title: TP 1 Transversal-EDA "Rendimiento Estudiantil"
+author: Moreno Cecilia - Patiri Sabrina
+format: pdf
+---
+
+## d. Importación y descripción del dataset
+
+```{r}
+#| message: false
+#| warning: false
+library(tidyverse)
+df <- read_delim("dataset.csv", delim = ";", show_col_types = FALSE)
+head(df)
+dim(df)
+```
+El dataset contiene 500 estudiantes y 11 variables que describen su perfil académico y personal. Fue descargado automáticamente mediante el script descarga.sh disponible en el repositorio de GitHub.
+1. Identificación de variables
+glimpse(df)
+```
+2.Variables categóricas:
+
+student_id: identificador del estudiante
+
+gender: género (Male/Female)
+
+parent_education: nivel educativo del padre
+
+internet_access: acceso a internet (Yes/No)
+
+extracurricular: actividades extraescolares (Yes/No)
+
+passed: si aprobó o no (Yes/No)
+
+Variables numéricas:
+
+age: edad
+
+study_hours_per_week: horas de estudio semanales
+
+attendance_rate: porcentaje de asistencia
+
+previous_score: nota del período anterior
+
+final_score: nota final
+3. Medidas de posición
+3.1 Medidas de tendencia central
+
+```{r}
+vars_num <- df %>% select(age, study_hours_per_week, attendance_rate, previous_score, final_score)
+
+print("MEDIA:")
+vars_num %>% summarise(across(everything(), mean))
+
+print("MEDIANA:")
+vars_num %>% summarise(across(everything(), median))
+```
+
+# Moda (valor más frecuente)
+```{r}
+moda <- function(x) as.numeric(names(sort(table(x), decreasing = TRUE)[1]))
+
+print("MODA:")
+vars_num %>% summarise(across(everything(), moda))
+```
+3.2 Cuartiles
+
+```{r}
+vars_num %>%
+  summarise(across(everything(), list(
+    Q1 = ~ quantile(.x, 0.25),
+    Q2 = ~ quantile(.x, 0.50),
+    Q3 = ~ quantile(.x, 0.75)
+  ))) %>%
+  pivot_longer(everything(), names_to = c("variable", "cuartil"), names_sep = "_") %>%
+  pivot_wider(names_from = cuartil, values_from = value)
+```
+3.3 Deciles y percentiles de final_score
+```{r}
+quantile(df$final_score, probs = seq(0.1, 1, by = 0.1))
+
+quantile(df$final_score, probs = c(0.25, 0.50, 0.75, 0.90, 0.95))
+```
+4. Histogramas y boxplots
+Histogramas
+
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+vars_num <- df %>% select(age, study_hours_per_week, attendance_rate, previous_score, final_score)
+
+p1 <- vars_num %>%
+  pivot_longer(everything(), names_to = "variable", values_to = "valor") %>%
+  ggplot(aes(x = valor)) +
+  geom_histogram(fill = "steelblue", color = "white", bins = 30) +
+  facet_wrap(~ variable, scales = "free") +
+  labs(title = "Distribución de variables numéricas") +
+  theme_minimal()
+
+print(p1)
+```
+Boxplots
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+p2 <- vars_num %>%
+  pivot_longer(everything(), names_to = "variable", values_to = "valor") %>%
+  ggplot(aes(x = variable, y = valor, fill = variable)) +
+  geom_boxplot() +
+  facet_wrap(~ variable, scales = "free") +
+  labs(title = "Boxplots de variables numéricas") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+print(p2)
+```
+5. Análisis detallado: study_hours_per_week
+5.1 Tabla de frecuencias
+
+```{r}
+breaks <- seq(min(df$study_hours_per_week), max(df$study_hours_per_week), length.out = 9)
+
+amplitud <- breaks[2] - breaks[1]
+
+tabla_freq <- df %>%
+  mutate(intervalo = cut(study_hours_per_week, breaks = breaks, include.lowest = TRUE)) %>%
+  group_by(intervalo) %>%
+  summarise(frec_abs = n(), .groups = "drop") %>%
+  mutate(
+    frec_rel = frec_abs / sum(frec_abs),
+    frec_porc = frec_rel * 100,
+    frec_acum = cumsum(frec_abs)
+  )
+
+tabla_freq
+```
+5.2 Histograma con intervalos de clase
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+p3 <- ggplot(df, aes(x = study_hours_per_week)) +
+  geom_histogram(breaks = breaks, fill = "steelblue", color = "white") +
+  labs(title = "Histograma de horas de estudio semanales",
+       x = "Horas de estudio por semana",
+       y = "Frecuencia absoluta") +
+  theme_minimal()
+
+print(p3)
+```
+5.3 Interpretación
+```{r}
+#| echo: false
+skewness_val <- mean((df$study_hours_per_week - mean(df$study_hours_per_week))^3) / sd(df$study_hours_per_week)^3
+```
+La variable study_hours_per_week tiene una amplitud de clase de r round(amplitud, 2) horas. La distribución muestra que la mayoría de los estudiantes estudia entre 5 y 20 horas semanales.
+
+El histograma permite detectar si hay asimetría en los datos: si la cola es más larga hacia la derecha hay sesgo positivo, y si es hacia la izquierda hay sesgo negativo. El valor de asimetría para esta variable es r round(skewness_val, 2).
