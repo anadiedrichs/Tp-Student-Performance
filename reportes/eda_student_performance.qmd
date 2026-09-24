@@ -10,7 +10,7 @@ format: pdf
 #| message: false
 #| warning: false
 library(tidyverse)
-df <- read_delim("dataset.csv", delim = ";", show_col_types = FALSE)
+df <- read_delim("../datos/dataset.csv", delim = ";", show_col_types = FALSE)
 head(df)
 dim(df)
 ```

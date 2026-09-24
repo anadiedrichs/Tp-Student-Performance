@@ -13,7 +13,7 @@ head -5 dataset_raw.csv
 wc -l dataset_raw.csv
 
 # 3. Cambiar separador de ; a , para que R lo lea bien
-tr ';' ',' < dataset_raw.csv > dataset.csv
+tr ';' ',' < dataset_raw.csv > ../datos/dataset.csv
 
 # 4. Eliminar archivo temporal
 rm dataset_raw.csv
